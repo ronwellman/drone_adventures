@@ -28,12 +28,13 @@ def send_command(sec, cmd, seq, *args):
     sec = how long to continuously send.
     """
     sleep_time = .03
-    # if sec > 1:
-    #     sleep_time = .3
-    # else:
-    #     sleep_time = sec / 100
+    if sec > 1:
+        sleep_time = .2
+    else:
+        sleep_time = sec / 100
     start = time.time()
     while time.time() < (start + sec):
+    # for x in range(sec):
         drone_socket.sendto(cmd.format(seq, *args).encode('utf-8'),
                             (drone_ip, drone_at_port))
         time.sleep(sleep_time)
@@ -47,7 +48,7 @@ def takeoff(seq):
     drone_socket.sendto(at_ftrim.format(seq).encode('utf-8'),
                         (drone_ip, drone_at_port))
     seq += 1
-    time.sleep(4)
+    time.sleep(2)
 
     drone_socket.sendto(at_ref.format(seq, launch).encode('utf-8'),
                         (drone_ip, drone_at_port))
@@ -80,63 +81,62 @@ def main():
     # cmd = def_set_bits + takeoff_bit
     seq = 1
 
-    forward = unpack('i', pack('f', .0000001))[0]
+    forward = unpack('i', pack('f', .001))[0]
     turn = unpack('i', pack('f', 1))[0]
     vertical = unpack('i', pack('f', 1))[0]
     timer_t = 0.2
-    com_watchdog_timer = threading.Timer(self.timer_t, commwdg)
+
+    com_watchdog_timer = threading.Timer(timer_t, commwdg)
 
     try:
         print("takeoff")
         seq = takeoff(seq)
 
-        time.sleep(4)
+        time.sleep(2)
+
+        print("hover")
+        seq = send_command(2, at_pcmd, seq, 0, 0, 0, 0, 0, 0, 0)
 
         print("forward")
-        # move forward
         seq = send_command(4, at_pcmd, seq, 1, 0, -1 * forward, 0, 0, 0, 0)
 
         time.sleep(2)
 
         print("hover")
-        # hover
-        seq = send_command(1, at_pcmd, seq, 0, 0, 0, 0, 0, 0, 0)
+        seq = send_command(2, at_pcmd, seq, 0, 0, 0, 0, 0, 0, 0)
 
         time.sleep(2)
 
         print("land")
-        # land
         seq = land(seq)
 
         time.sleep(1)
 
         print("takeoff")
-        # takeoff
-        seq = send_command(1, at_ref, seq, def_set_bits + takeoff_bit)
-        time.sleep(4)
+        seq = takeoff(seq)
+        time.sleep(2)
 
         print("turn")
-        # turn
         seq = send_command(2, at_pcmd, seq, 1, 0, 0, 0, turn, 1, 0)
         time.sleep(2)
 
         print("hover")
-        # hover
-        seq = send_command(1, at_pcmd, seq, 0, 0, 0, 0, 0, 1, 0)
+        seq = send_command(2, at_pcmd, seq, 0, 0, 0, 0, 0, 0, 0)
+
+        print("forward")
+        seq = send_command(4, at_pcmd, seq, 1, 0, -1 * forward, 0, 0, 0, 0)
+
         time.sleep(2)
 
-        print("forwards")
-        # move forwards
-        seq = send_command(4, at_pcmd, seq, 1, 0, -1 * forward, 0, 0, 1, 0)
-
         print("hover")
-        # hover
-        seq = send_command(1, at_pcmd, seq, 0, 0, 0, 1, 0, 0, 0)
+        seq = send_command(2, at_pcmd, seq, 0, 0, 0, 0, 0, 0, 0)
 
         time.sleep(2)
 
         print("land")
         seq = land(seq)
+
+        time.sleep(1)
 
     except KeyboardInterrupt as e:
         print("emergency")
